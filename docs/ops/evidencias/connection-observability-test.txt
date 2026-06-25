@@ -1,0 +1,37 @@
+Evidência — Cenário C5: connection.lost / connection.restored
+Teste: Observability.test.tsx > emite connection.lost na queda e connection.restored na volta
+Data: 2026-06-25T19:04:28Z
+Resultado: PASSED (2/2 testes)
+
+--- Saída do teste connection.lost/restored ---
+
+[connection-observability-evidence] {
+  "logs": [
+    {
+      "ts": "2026-06-25T19:04:28.899Z",
+      "level": "warn",
+      "event": "connection.lost",
+      "meta": {
+        "reason": "Network Error"
+      }
+    },
+    {
+      "ts": "2026-06-25T19:04:28.949Z",
+      "level": "info",
+      "event": "connection.restored",
+      "meta": {}
+    }
+  ],
+  "metrics": {
+    "fetchErrors": 0,
+    "pageRenderMs": {},
+    "alertsRendered": 0
+  }
+}
+
+--- Interpretação ---
+
+1. connection.lost emitido às 19:04:28.899 com level "warn" e reason "Network Error"
+2. connection.restored emitido às 19:04:28.949 com level "info"
+3. fetchErrors permanece em 0 (logWarn não incrementa, confirmando que Sintoma 1 não é poluído)
+4. Tempo de degradação: 50ms (diferença entre lost e restored)

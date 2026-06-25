@@ -83,6 +83,16 @@ Cada operação mockada do `MockDashboardClient` gera um `requestId` via `newReq
 3. Revisar `dashboard/src/utils/csv.ts`.
 4. Validar se o filtro atual não zerou o dataset.
 
+### Sintoma 4 — Banner "Sem conexão" apareceu durante uso normal
+
+1. Abrir o painel **Observabilidade (debug)**.
+2. Filtrar logs por evento `connection.lost`.
+3. Verificar o campo `reason` no meta para entender o motivo (ex: "Network Error", "timeout").
+4. Verificar o timestamp (`ts`) para saber quando caiu.
+5. Procurar evento `connection.restored` para saber quando voltou.
+6. Diferença entre os dois = tempo de degradação.
+7. Se não houver `connection.restored`, a conexão ainda está fora — verificar servidor/rede.
+
 ## Próximo passo (v0.2)
 
 - enviar logs para backend / collector real;
