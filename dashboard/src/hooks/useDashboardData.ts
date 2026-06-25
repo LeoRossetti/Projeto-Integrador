@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DashboardClient, DashboardSnapshot, ResumoSemanal } from '../data/types';
 import { getDashboardClient } from '../data/dashboardClient';
+import { logWarn, logInfo } from '../utils/observability';
 
 export type DashboardStatus = 'loading' | 'success' | 'error';
 
@@ -25,6 +26,9 @@ export function useDashboardData(clientArg?: DashboardClient, pollMs: number = P
   const [connectionLost, setConnectionLost] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const temDados = useRef(false);
+  // ESTUDO: essa variável lembra se a conexão estava caída ou não.
+  // Precisa ser useRef (e não useState) pra funcionar dentro do buscar().
+  const wasConnectionLost = useRef(false);
   const requestId = useRef(0);
 
   const buscar = useCallback(async () => {
@@ -39,6 +43,12 @@ export function useDashboardData(clientArg?: DashboardClient, pollMs: number = P
       setSnapshot({ canteiros, leituras });
       setResumoSemanal(resumo);
       setLastUpdated(new Date());
+      // ESTUDO: se antes tava caído e agora deu certo, avisa nos logs que voltou.
+      // Usa logInfo (aviso leve) porque voltar é coisa boa.
+      if (wasConnectionLost.current) {
+        logInfo('connection.restored');
+      }
+      wasConnectionLost.current = false;
       setConnectionLost(false);
       setError(null);
       setStatus('success');
@@ -47,6 +57,13 @@ export function useDashboardData(clientArg?: DashboardClient, pollMs: number = P
       if (id !== requestId.current) return;
       const err = e instanceof Error ? e : new Error(String(e));
       if (temDados.current) {
+        // ESTUDO: só avisa nos logs na PRIMEIRA vez que cai, não toda vez.
+        // Usa logWarn (alerta) e não logError, pra não bagunçar a contagem de erros do Sintoma 1.
+        // err.message diz o motivo (ex: "Network Error", "timeout").
+        if (!wasConnectionLost.current) {
+          logWarn('connection.lost', { reason: err.message });
+        }
+        wasConnectionLost.current = true;
         setConnectionLost(true);
       } else {
         setError(err);
@@ -57,7 +74,7 @@ export function useDashboardData(clientArg?: DashboardClient, pollMs: number = P
 
   useEffect(() => {
     void buscar();
-    const id = setInterval(() => void buscar(), pollMs);
+    const id = setInterval(() => void buscar(), pollMs); // poilling é o sistema perguntando se tem dado novo 
     return () => clearInterval(id);
   }, [buscar, pollMs]);
 
